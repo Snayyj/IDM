@@ -87,6 +87,12 @@ class LinkExtractor(QDialog):
         self.progress_bar.setValue(0)
         layout.addWidget(self.progress_bar)
         
+        # Indication d'état
+        self.status_label = QLabel("")
+        self.status_label.setAlignment(Qt.AlignCenter)
+        self.status_label.setStyleSheet("font-weight: bold; color: blue;")
+        layout.addWidget(self.status_label)
+        
         # Résultats
         self.results_table = QTableWidget()
         self.results_table.setColumnCount(2)
@@ -106,11 +112,16 @@ class LinkExtractor(QDialog):
         self.results_table.setRowCount(0)
         self.progress_bar.setValue(0)
         
+        # Mettre à jour le label d'état
+        self.status_label.setText("Extraction en cours...")
+        self.status_label.setStyleSheet("font-weight: bold; color: orange;")
+        
         # Lancer l'extraction dans un thread
         self.extraction_thread = LinkExtractionThread(url, extraction_type)
         self.extraction_thread.extraction_complete.connect(self.display_results)
         self.extraction_thread.progress_updated.connect(self.update_progress)
         self.extraction_thread.error_occurred.connect(self.handle_error)
+        self.extraction_thread.finished.connect(self.reset_status)  # Réinitialiser le statut après extraction
         self.extraction_thread.start()
 
     def update_progress(self, value):
@@ -123,9 +134,18 @@ class LinkExtractor(QDialog):
             self.results_table.insertRow(row)
             self.results_table.setItem(row, 0, QTableWidgetItem(link))
             self.results_table.setItem(row, 1, QTableWidgetItem(self.extraction_type.currentText()))
+        self.status_label.setText("Extraction terminée avec succès !")
+        self.status_label.setStyleSheet("font-weight: bold; color: green;")
 
     def handle_error(self, error_message):
+        self.status_label.setText("Erreur lors de l'extraction.")
+        self.status_label.setStyleSheet("font-weight: bold; color: red;")
         QMessageBox.critical(self, 'Erreur', error_message)
+
+    def reset_status(self):
+        if not self.results_table.rowCount():
+            self.status_label.setText("Aucun résultat trouvé.")
+            self.status_label.setStyleSheet("font-weight: bold; color: gray;")
 
 def main():
     app = QApplication(sys.argv)
